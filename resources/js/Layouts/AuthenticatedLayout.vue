@@ -5,6 +5,7 @@ import Dropdown from '@/Components/Dropdown.vue';
 import DropdownLink from '@/Components/DropdownLink.vue';
 import NavLink from '@/Components/NavLink.vue';
 import ResponsiveNavLink from '@/Components/ResponsiveNavLink.vue';
+import NotificationDropdown from '@/Components/NotificationDropdown.vue';
 import { Link } from '@inertiajs/vue3';
 
 const showingNavigationDropdown = ref(false);
@@ -32,12 +33,38 @@ const showingNavigationDropdown = ref(false);
                                 <NavLink :href="route('dashboard')" :active="route().current('dashboard')">
                                     Dashboard
                                 </NavLink>
+                                <NavLink :href="route('rooms.index')" :active="route().current('rooms.*')">
+                                    Ruangan
+                                </NavLink>
+                                <NavLink :href="route('reservations.index')" :active="route().current('reservations.index') || route().current('reservations.create') || route().current('reservations.show')">
+                                    Reservasi
+                                </NavLink>
+                                <NavLink :href="route('reservations.calendar')" :active="route().current('reservations.calendar')">
+                                    Kalender
+                                </NavLink>
+                                <NavLink
+                                    v-if="$page.props.auth.user?.roles?.some(role => ['admin', 'manager'].includes(role))"
+                                    :href="route('approvals.index')"
+                                    :active="route().current('approvals.*')"
+                                >
+                                    Persetujuan
+                                </NavLink>
+                                <NavLink
+                                    v-if="$page.props.auth.user?.roles?.some(role => ['admin', 'manager'].includes(role))"
+                                    :href="route('reports.index')"
+                                    :active="route().current('reports.*')"
+                                >
+                                    Laporan
+                                </NavLink>
                             </div>
                         </div>
 
-                        <div class="hidden sm:flex sm:items-center sm:ms-6">
+                        <div class="hidden sm:flex sm:items-center sm:ms-6 space-x-3">
+                            <!-- Notification Dropdown -->
+                            <NotificationDropdown />
+
                             <!-- Settings Dropdown -->
-                            <div class="ms-3 relative">
+                            <div class="relative">
                                 <Dropdown align="right" width="48">
                                     <template #trigger>
                                         <span class="inline-flex rounded-md">
@@ -73,8 +100,10 @@ const showingNavigationDropdown = ref(false);
                             </div>
                         </div>
 
-                        <!-- Hamburger -->
-                        <div class="-me-2 flex items-center sm:hidden">
+                        <!-- Hamburger & Mobile Notification -->
+                        <div class="-me-2 flex items-center sm:hidden space-x-1">
+                            <NotificationDropdown />
+
                             <button
                                 @click="showingNavigationDropdown = !showingNavigationDropdown"
                                 class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:bg-gray-100 focus:text-gray-500 transition duration-150 ease-in-out"
@@ -115,6 +144,29 @@ const showingNavigationDropdown = ref(false);
                         <ResponsiveNavLink :href="route('dashboard')" :active="route().current('dashboard')">
                             Dashboard
                         </ResponsiveNavLink>
+                        <ResponsiveNavLink :href="route('rooms.index')" :active="route().current('rooms.*')">
+                            Ruangan
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink :href="route('reservations.index')" :active="route().current('reservations.index') || route().current('reservations.create') || route().current('reservations.show')">
+                            Reservasi
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink :href="route('reservations.calendar')" :active="route().current('reservations.calendar')">
+                            Kalender
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="$page.props.auth.user?.roles?.some(role => ['admin', 'manager'].includes(role))"
+                            :href="route('approvals.index')"
+                            :active="route().current('approvals.*')"
+                        >
+                            Persetujuan
+                        </ResponsiveNavLink>
+                        <ResponsiveNavLink
+                            v-if="$page.props.auth.user?.roles?.some(role => ['admin', 'manager'].includes(role))"
+                            :href="route('reports.index')"
+                            :active="route().current('reports.*')"
+                        >
+                            Laporan
+                        </ResponsiveNavLink>
                     </div>
 
                     <!-- Responsive Settings Options -->
@@ -142,6 +194,18 @@ const showingNavigationDropdown = ref(false);
                     <slot name="header" />
                 </div>
             </header>
+
+            <!-- Flash Messages -->
+            <div v-if="$page.props.flash?.success" class="max-w-7xl mx-auto mt-4 px-4 sm:px-6 lg:px-8">
+                <div class="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-md text-sm flex items-center justify-between">
+                    <span>{{ $page.props.flash.success }}</span>
+                </div>
+            </div>
+            <div v-if="$page.props.flash?.error" class="max-w-7xl mx-auto mt-4 px-4 sm:px-6 lg:px-8">
+                <div class="p-4 bg-red-50 border border-red-200 text-red-800 rounded-md text-sm flex items-center justify-between">
+                    <span>{{ $page.props.flash.error }}</span>
+                </div>
+            </div>
 
             <!-- Page Content -->
             <main>

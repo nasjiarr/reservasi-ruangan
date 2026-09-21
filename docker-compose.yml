@@ -1,0 +1,148 @@
+version: '3.8'
+
+services:
+  # ----------------------------------------------------------------------------
+  # Application Service (PHP 8.2-FPM)
+  # ----------------------------------------------------------------------------
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: reservasi_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    environment:
+      APP_ENV: production
+      APP_DEBUG: 'false'
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-reservasi_ruangan}
+      DB_USERNAME: ${DB_USERNAME:-laravel}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      QUEUE_CONNECTION: database
+      BROADCAST_DRIVER: reverb
+      REVERB_HOST: reverb
+      REVERB_PORT: 8080
+    volumes:
+      - storage_data:/var/www/html/storage
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - reservasi_network
+
+  # ----------------------------------------------------------------------------
+  # Web Server (Nginx Reverse Proxy)
+  # ----------------------------------------------------------------------------
+  web:
+    image: nginx:alpine
+    container_name: reservasi_web
+    restart: unless-stopped
+    ports:
+      - "${APP_PORT:-80}:80"
+    volumes:
+      - .:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - storage_data:/var/www/html/storage:ro
+    depends_on:
+      - app
+    networks:
+      - reservasi_network
+
+  # ----------------------------------------------------------------------------
+  # Database Service (MySQL 8.0)
+  # ----------------------------------------------------------------------------
+  db:
+    image: mysql:8.0
+    container_name: reservasi_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-reservasi_ruangan}
+      MYSQL_USER: ${DB_USERNAME:-laravel}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-secret}
+    ports:
+      - "${FORWARD_DB_PORT:-3306}:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-p${DB_PASSWORD:-secret}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - reservasi_network
+
+  # ----------------------------------------------------------------------------
+  # Queue Worker Service (Background Jobs & Notifications)
+  # ----------------------------------------------------------------------------
+  queue:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: reservasi_queue
+    restart: unless-stopped
+    working_dir: /var/www/html
+    command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
+    environment:
+      APP_ENV: production
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-reservasi_ruangan}
+      DB_USERNAME: ${DB_USERNAME:-laravel}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      QUEUE_CONNECTION: database
+      BROADCAST_DRIVER: reverb
+      REVERB_HOST: reverb
+      REVERB_PORT: 8080
+    volumes:
+      - storage_data:/var/www/html/storage
+    depends_on:
+      - app
+      - db
+    networks:
+      - reservasi_network
+
+  # ----------------------------------------------------------------------------
+  # WebSocket Server (Laravel Reverb Real-Time Broadcasting)
+  # ----------------------------------------------------------------------------
+  reverb:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: reservasi_reverb
+    restart: unless-stopped
+    working_dir: /var/www/html
+    command: php artisan reverb:start --host=0.0.0.0 --port=8080
+    ports:
+      - "${REVERB_SERVER_PORT:-8080}:8080"
+    environment:
+      APP_ENV: production
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: ${DB_DATABASE:-reservasi_ruangan}
+      DB_USERNAME: ${DB_USERNAME:-laravel}
+      DB_PASSWORD: ${DB_PASSWORD:-secret}
+      REVERB_HOST: 0.0.0.0
+      REVERB_PORT: 8080
+    depends_on:
+      - app
+    networks:
+      - reservasi_network
+
+# ------------------------------------------------------------------------------
+# Volumes & Networks Definitions
+# ------------------------------------------------------------------------------
+volumes:
+  db_data:
+    driver: local
+  storage_data:
+    driver: local
+
+networks:
+  reservasi_network:
+    driver: bridge
+

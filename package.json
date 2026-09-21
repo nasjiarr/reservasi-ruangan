@@ -22,6 +22,8 @@
         "@fullcalendar/interaction": "^6.1.21",
         "@fullcalendar/timegrid": "^6.1.21",
         "@fullcalendar/vue3": "^7.1.0",
-        "date-fns": "^4.4.0"
+        "date-fns": "^4.4.0",
+        "laravel-echo": "^2.5.0",
+        "pusher-js": "^8.6.0"
     }
 }
