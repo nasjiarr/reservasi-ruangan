@@ -1,15 +1,32 @@
 <script setup>
 import { ref, computed } from 'vue';
-import { Head, router, usePage, useForm } from '@inertiajs/vue3';
+import { Head, router, usePage, useForm, Link } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import DangerButton from '@/Components/DangerButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
 import InputLabel from '@/Components/InputLabel.vue';
 import InputError from '@/Components/InputError.vue';
+import PageHeader from '@/Components/PageHeader.vue';
+import Card from '@/Components/Card.vue';
+import StatusBadge from '@/Components/StatusBadge.vue';
+import EmptyState from '@/Components/EmptyState.vue';
 import Modal from '@/Components/Modal.vue';
 import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
+import {
+    ShieldCheckIcon,
+    ShieldExclamationIcon,
+    ClockIcon,
+    CheckCircleIcon,
+    XCircleIcon,
+    CheckIcon,
+    XMarkIcon,
+    BuildingOffice2Icon,
+    UserCircleIcon,
+    QrCodeIcon,
+    ExclamationTriangleIcon,
+} from '@heroicons/vue/24/outline';
 
 const props = defineProps({
     reservations: {
@@ -40,9 +57,9 @@ const paginationLinks = computed(() => {
 });
 
 const tabs = [
-    { key: 'pending', label: 'Menunggu Persetujuan' },
-    { key: 'approved', label: 'Disetujui' },
-    { key: 'rejected', label: 'Ditolak' },
+    { key: 'pending', label: 'Menunggu Persetujuan', icon: ClockIcon },
+    { key: 'approved', label: 'Disetujui', icon: CheckCircleIcon },
+    { key: 'rejected', label: 'Ditolak', icon: XCircleIcon },
 ];
 
 const switchTab = (status) => {
@@ -127,209 +144,220 @@ const submitReject = () => {
     <Head title="Persetujuan Reservasi" />
 
     <AuthenticatedLayout>
-        <template #header>
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Persetujuan Reservasi Ruangan
-            </h2>
-        </template>
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+            <!-- Header Section -->
+            <PageHeader
+                title="Persetujuan Reservasi"
+                description="Tinjau dan proses permohonan peminjaman ruangan dari pengguna secara terpusat."
+                badge="Admin & Manager"
+            />
 
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <!-- Tidak Memiliki Hak Akses -->
-                <div v-if="!hasAccess" class="bg-red-50 border border-red-200 text-red-700 p-6 rounded-lg text-center">
-                    <h3 class="text-lg font-semibold">Tidak Ada Akses</h3>
-                    <p class="mt-2 text-sm">Halaman persetujuan reservasi ini hanya dapat diakses oleh Administrator atau Manager.</p>
+            <!-- Akses Ditolak Card -->
+            <div
+                v-if="!hasAccess"
+                class="bg-rose-50 border border-rose-200 rounded-2xl p-8 text-center max-w-lg mx-auto my-12"
+            >
+                <div class="w-12 h-12 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center mx-auto mb-3">
+                    <ShieldExclamationIcon class="w-6 h-6" />
+                </div>
+                <h3 class="font-heading font-bold text-lg text-rose-900">Akses Dibatasi</h3>
+                <p class="mt-2 text-sm text-rose-700 leading-relaxed">
+                    Halaman persetujuan reservasi ini dikhususkan bagi akun dengan hak akses <strong>Administrator</strong> atau <strong>Manager</strong>.
+                </p>
+            </div>
+
+            <!-- Main Content Container -->
+            <Card v-else :no-padding="true">
+                <!-- Status Filter Tabs -->
+                <div class="border-b border-slate-200/80 bg-slate-50/50 px-6 pt-3">
+                    <nav class="-mb-px flex space-x-6" aria-label="Tabs">
+                        <button
+                            v-for="tab in tabs"
+                            :key="tab.key"
+                            @click="switchTab(tab.key)"
+                            :class="[
+                                currentStatus === tab.key
+                                    ? 'border-brand-600 text-brand-700 font-bold'
+                                    : 'border-transparent text-slate-500 hover:text-slate-800 hover:border-slate-300 font-medium',
+                                'inline-flex items-center gap-2 py-3.5 px-2 border-b-2 text-sm transition-colors'
+                            ]"
+                        >
+                            <component :is="tab.icon" class="w-4 h-4 shrink-0" />
+                            <span>{{ tab.label }}</span>
+                        </button>
+                    </nav>
                 </div>
 
-                <!-- Konten Utama jika Berhak Akses -->
-                <div v-else class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <!-- Status Filter Tabs -->
-                    <div class="border-b border-gray-200">
-                        <nav class="-mb-px flex space-x-8 px-6 pt-4" aria-label="Tabs">
-                            <button
-                                v-for="tab in tabs"
-                                :key="tab.key"
-                                @click="switchTab(tab.key)"
-                                :class="[
-                                    currentStatus === tab.key
-                                        ? 'border-indigo-500 text-indigo-600 font-semibold'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 font-medium',
-                                    'whitespace-nowrap py-3 px-1 border-b-2 text-sm transition'
-                                ]"
-                            >
-                                {{ tab.label }}
-                            </button>
-                        </nav>
+                <div class="p-6">
+                    <!-- Section Meta -->
+                    <div class="mb-5 flex items-center justify-between">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                            Menampilkan {{ reservationList.length }} pengajuan
+                        </span>
                     </div>
 
-                    <div class="p-6 text-gray-900">
-                        <div class="mb-4 flex items-center justify-between">
-                            <h3 class="text-base font-semibold text-gray-700">
-                                Daftar Reservasi ({{ reservationList.length }})
-                            </h3>
-                        </div>
+                    <!-- Empty State -->
+                    <EmptyState
+                        v-if="reservationList.length === 0"
+                        :title="`Tidak Ada Pengajuan ${currentStatus === 'pending' ? 'Menunggu' : currentStatus === 'approved' ? 'Disetujui' : 'Ditolak'}`"
+                        :description="`Saat ini belum ada data permohonan reservasi dengan status ${currentStatus}.`"
+                    >
+                        <template #icon>
+                            <ClockIcon v-if="currentStatus === 'pending'" class="w-7 h-7 text-slate-400" />
+                            <CheckCircleIcon v-else-if="currentStatus === 'approved'" class="w-7 h-7 text-slate-400" />
+                            <XCircleIcon v-else class="w-7 h-7 text-slate-400" />
+                        </template>
+                    </EmptyState>
 
-                        <div v-if="reservationList.length === 0" class="text-center py-12">
-                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <h3 class="mt-2 text-sm font-medium text-gray-900">Tidak ada reservasi pada kategori ini</h3>
-                            <p class="mt-1 text-sm text-gray-500">Belum ada pengajuan dengan status {{ currentStatus }}.</p>
-                        </div>
-
-                        <div v-else class="space-y-4">
-                            <div
-                                v-for="res in reservationList"
-                                :key="res.id"
-                                class="border border-gray-200 rounded-lg p-5 hover:border-indigo-300 transition"
-                            >
-                                <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                                    <div class="space-y-1.5">
-                                        <div class="flex items-center space-x-2">
-                                            <span
-                                                v-if="res.status === 'pending'"
-                                                class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-300"
-                                            >
-                                                Pending
-                                            </span>
-                                            <span
-                                                v-else-if="res.status === 'approved'"
-                                                class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300"
-                                            >
-                                                Disetujui
-                                            </span>
-                                            <span
-                                                v-else-if="res.status === 'rejected'"
-                                                class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-800 border border-red-300"
-                                            >
-                                                Ditolak
-                                            </span>
-                                            <span
-                                                v-else
-                                                class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-800 border border-gray-300"
-                                            >
-                                                {{ res.status }}
-                                            </span>
-                                            <h4 class="text-lg font-bold text-gray-900">
-                                                {{ res.title }}
-                                            </h4>
-                                        </div>
-
-                                        <div class="text-sm text-gray-600 flex flex-wrap items-center gap-x-4 gap-y-1 pt-1">
-                                            <div>
-                                                <span class="font-medium text-gray-700">Ruangan:</span>
-                                                <span class="text-indigo-600 font-semibold ml-1">{{ res.room?.name || '-' }}</span>
-                                                <span v-if="res.room?.location" class="text-xs text-gray-500"> ({{ res.room.location }})</span>
-                                            </div>
-                                            <div>
-                                                <span class="font-medium text-gray-700">Pemesan:</span>
-                                                <span class="ml-1">{{ res.user?.name || '-' }}</span>
-                                                <span v-if="res.user?.email" class="text-xs text-gray-400"> ({{ res.user.email }})</span>
-                                            </div>
-                                        </div>
-
-                                        <div class="text-sm text-gray-600 flex items-center gap-x-2">
-                                            <span class="font-medium text-gray-700">Jadwal:</span>
-                                            <span class="text-gray-800">{{ formatDate(res.start_time) }}</span>
-                                            <span>&rarr;</span>
-                                            <span class="text-gray-800">{{ formatDate(res.end_time) }}</span>
-                                        </div>
-
-                                        <p v-if="res.description" class="text-sm text-gray-600 bg-gray-50 p-2.5 rounded mt-2 border border-gray-100">
-                                            <span class="font-medium text-gray-700 block text-xs uppercase mb-0.5">Keperluan:</span>
-                                            {{ res.description }}
-                                        </p>
+                    <!-- List of Reservation Approvals -->
+                    <div v-else class="space-y-4">
+                        <div
+                            v-for="res in reservationList"
+                            :key="res.id"
+                            class="rounded-xl border border-slate-200/90 bg-white p-5 hover:border-slate-300 hover:shadow-card transition duration-150"
+                        >
+                            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+                                <div class="space-y-2.5 flex-1">
+                                    <!-- Status Badge + Title -->
+                                    <div class="flex flex-wrap items-center gap-2.5">
+                                        <StatusBadge :status="res.status" size="sm" />
+                                        <h4 class="font-heading font-bold text-base text-slate-900">
+                                            {{ res.title }}
+                                        </h4>
                                     </div>
 
-                                    <!-- Tombol Aksi Sesuai Status -->
-                                    <div class="flex items-center space-x-3 shrink-0 lg:self-center">
-                                        <!-- Jika Pending: Tombol Setujui & Tolak -->
-                                        <template v-if="res.status === 'pending'">
-                                            <button
-                                                type="button"
-                                                :disabled="isProcessing"
-                                                @click="approveReservation(res)"
-                                                class="inline-flex items-center px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md font-semibold text-xs uppercase tracking-widest transition disabled:opacity-50"
-                                            >
-                                                Setujui
-                                            </button>
-                                            <DangerButton
-                                                type="button"
-                                                :disabled="isProcessing"
-                                                @click="openRejectModal(res)"
-                                            >
-                                                Tolak
-                                            </DangerButton>
-                                        </template>
+                                    <!-- Room & Requester Info -->
+                                    <div class="text-xs text-slate-600 flex flex-wrap items-center gap-x-5 gap-y-1 pt-0.5">
+                                        <div class="flex items-center gap-1.5">
+                                            <BuildingOffice2Icon class="w-4 h-4 text-brand-600 shrink-0" />
+                                            <span class="font-medium text-slate-500">Ruangan:</span>
+                                            <span class="font-bold text-slate-800">{{ res.room?.name || '-' }}</span>
+                                            <span v-if="res.room?.location" class="text-slate-400">({{ res.room.location }})</span>
+                                        </div>
 
-                                        <!-- Jika Approved: Tombol Lihat QR -->
-                                        <template v-else-if="res.status === 'approved'">
-                                            <button
-                                                type="button"
-                                                @click="openQrModal(res)"
-                                                class="inline-flex items-center px-3.5 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-md font-semibold text-xs uppercase tracking-wider border border-indigo-200 transition"
-                                            >
-                                                <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                                                </svg>
-                                                Lihat QR
-                                            </button>
-                                        </template>
+                                        <div class="flex items-center gap-1.5">
+                                            <UserCircleIcon class="w-4 h-4 text-slate-400 shrink-0" />
+                                            <span class="font-medium text-slate-500">Pemesan:</span>
+                                            <span class="font-semibold text-slate-800">{{ res.user?.name || '-' }}</span>
+                                            <span v-if="res.user?.email" class="text-slate-400">({{ res.user.email }})</span>
+                                        </div>
                                     </div>
+
+                                    <!-- Time Schedule -->
+                                    <div class="text-xs text-slate-600 flex items-center gap-2">
+                                        <ClockIcon class="w-4 h-4 text-slate-400 shrink-0" />
+                                        <span class="font-medium text-slate-500">Jadwal:</span>
+                                        <span class="font-semibold text-slate-800">{{ formatDate(res.start_time) }}</span>
+                                        <span class="text-slate-400">&rarr;</span>
+                                        <span class="font-semibold text-slate-800">{{ formatDate(res.end_time) }}</span>
+                                    </div>
+
+                                    <!-- Description / Notes -->
+                                    <div v-if="res.description" class="text-xs text-slate-600 bg-slate-50 p-3 rounded-lg border border-slate-100 mt-2">
+                                        <span class="font-bold uppercase tracking-wider text-[10px] text-slate-400 block mb-0.5">Keperluan Acara:</span>
+                                        {{ res.description }}
+                                    </div>
+                                </div>
+
+                                <!-- Action Buttons Area -->
+                                <div class="flex items-center gap-2 shrink-0 lg:self-center">
+                                    <!-- Pending Actions -->
+                                    <template v-if="res.status === 'pending'">
+                                        <button
+                                            type="button"
+                                            :disabled="isProcessing"
+                                            @click="approveReservation(res)"
+                                            class="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-semibold text-xs uppercase tracking-wider shadow-xs transition disabled:opacity-50"
+                                        >
+                                            <CheckIcon class="w-4 h-4 stroke-2" />
+                                            <span>Setujui</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            :disabled="isProcessing"
+                                            @click="openRejectModal(res)"
+                                            class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 border border-slate-200 hover:border-rose-200 rounded-lg font-semibold text-xs uppercase tracking-wider shadow-xs transition disabled:opacity-50"
+                                        >
+                                            <XMarkIcon class="w-4 h-4 stroke-2" />
+                                            <span>Tolak</span>
+                                        </button>
+                                    </template>
+
+                                    <!-- Approved Actions -->
+                                    <template v-else-if="res.status === 'approved'">
+                                        <button
+                                            type="button"
+                                            @click="openQrModal(res)"
+                                            class="inline-flex items-center gap-1.5 px-3.5 py-2 bg-teal-50 hover:bg-teal-100 text-brand-700 border border-teal-200/80 rounded-lg font-semibold text-xs uppercase tracking-wider shadow-xs transition"
+                                        >
+                                            <QrCodeIcon class="w-4 h-4" />
+                                            <span>Lihat QR</span>
+                                        </button>
+                                    </template>
                                 </div>
                             </div>
                         </div>
+                    </div>
 
-                        <!-- Pagination Links -->
-                        <div v-if="paginationLinks.length > 3" class="mt-6 flex justify-center">
-                            <div class="flex flex-wrap -mb-1">
-                                <template v-for="(link, key) in paginationLinks" :key="key">
-                                    <div
-                                        v-if="link.url === null"
-                                        class="mr-1 mb-1 px-3 py-2 text-sm leading-4 text-gray-400 border rounded"
-                                        v-html="link.label"
-                                    />
-                                    <Link
-                                        v-else
-                                        class="mr-1 mb-1 px-3 py-2 text-sm leading-4 border rounded hover:bg-gray-100 focus:border-indigo-500 focus:text-indigo-500"
-                                        :class="{ 'bg-indigo-600 text-white hover:bg-indigo-700': link.active }"
-                                        :href="link.url"
-                                        v-html="link.label"
-                                    />
-                                </template>
-                            </div>
-                        </div>
+                    <!-- Pagination -->
+                    <div v-if="paginationLinks.length > 3" class="mt-8 flex justify-center">
+                        <nav class="inline-flex rounded-xl shadow-xs border border-slate-200 bg-white p-1 gap-1">
+                            <template v-for="(link, key) in paginationLinks" :key="key">
+                                <div
+                                    v-if="link.url === null"
+                                    class="px-3 py-1.5 text-xs font-medium text-slate-400 rounded-lg cursor-not-allowed"
+                                    v-html="link.label"
+                                />
+                                <Link
+                                    v-else
+                                    class="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
+                                    :class="link.active ? 'bg-brand-600 text-white font-semibold shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'"
+                                    :href="link.url"
+                                    v-html="link.label"
+                                />
+                            </template>
+                        </nav>
                     </div>
                 </div>
-            </div>
+            </Card>
         </div>
 
         <!-- Modal Alasan Penolakan -->
         <Modal :show="isRejectModalOpen" @close="closeRejectModal">
             <div class="p-6">
-                <h3 class="text-lg font-semibold text-gray-900 border-b pb-3">
-                    Tolak Permohonan Reservasi
-                </h3>
+                <div class="flex items-center gap-3 border-b border-slate-100 pb-4">
+                    <div class="w-10 h-10 rounded-xl bg-rose-50 border border-rose-200 flex items-center justify-center text-rose-600 shrink-0">
+                        <ExclamationTriangleIcon class="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h3 class="font-heading font-bold text-base text-slate-900">
+                            Tolak Permohonan Reservasi
+                        </h3>
+                        <p class="text-xs text-slate-500">Berikan keterangan alasan penolakan bagi pemesan ruangan.</p>
+                    </div>
+                </div>
 
-                <p v-if="rejectingReservation" class="mt-3 text-sm text-gray-600">
-                    Anda akan menolak pengajuan untuk kegiatan <strong>"{{ rejectingReservation.title }}"</strong> pada ruangan <strong>{{ rejectingReservation.room?.name }}</strong>.
-                </p>
+                <div v-if="rejectingReservation" class="mt-4 p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs text-slate-600 space-y-1">
+                    <div class="font-bold text-slate-900 text-sm">{{ rejectingReservation.title }}</div>
+                    <div>Ruangan: <span class="font-semibold text-slate-800">{{ rejectingReservation.room?.name }}</span></div>
+                    <div>Pemesan: <span class="font-semibold text-slate-800">{{ rejectingReservation.user?.name }}</span></div>
+                </div>
 
                 <form @submit.prevent="submitReject" class="mt-4 space-y-4">
                     <div>
-                        <InputLabel for="note" value="Alasan Penolakan *" />
+                        <InputLabel for="note" value="Alasan Penolakan *" class="font-semibold text-xs text-slate-700" />
                         <textarea
                             id="note"
                             v-model="rejectForm.note"
                             rows="4"
-                            class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
-                            placeholder="Tuliskan alasan penolakan agar pemesan mengetahui kendalanya (misal: Ruangan akan direnovasi atau bentrok agenda direksi)..."
+                            class="mt-1.5 block w-full border-slate-300 focus:border-brand-500 focus:ring-brand-500 rounded-xl shadow-xs text-sm"
+                            placeholder="Tuliskan alasan penolakan secara jelas (misal: Ruangan terjadwal untuk perbaikan kelistrikan atau bentrok agenda direksi)..."
                             required
                         />
                         <InputError class="mt-2" :message="rejectForm.errors.note" />
                     </div>
 
-                    <div class="flex items-center justify-end space-x-3 pt-4 border-t">
+                    <div class="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
                         <SecondaryButton type="button" @click="closeRejectModal">
                             Batal
                         </SecondaryButton>
@@ -344,34 +372,44 @@ const submitReject = () => {
 
         <!-- Modal QR Code Check-In -->
         <Modal :show="isQrModalOpen" @close="closeQrModal" max-width="md">
-            <div class="p-6 text-center" v-if="activeReservation">
-                <div class="flex items-center justify-between pb-3 border-b mb-4">
-                    <h3 class="text-lg font-bold text-gray-900">
-                        QR Code Check-In Ruangan
-                    </h3>
-                    <button @click="closeQrModal" class="text-gray-400 hover:text-gray-600 text-xl font-bold">
-                        &times;
+            <div class="p-6" v-if="activeReservation">
+                <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200/80 flex items-center justify-center text-brand-600">
+                            <QrCodeIcon class="w-4 h-4" />
+                        </div>
+                        <h3 class="font-heading font-bold text-base text-slate-900">
+                            QR Code Check-In Ruangan
+                        </h3>
+                    </div>
+                    <button
+                        @click="closeQrModal"
+                        class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+                    >
+                        <XMarkIcon class="w-5 h-5" />
                     </button>
                 </div>
 
-                <div class="mb-4 text-left bg-gray-50 p-3 rounded-lg border border-gray-100">
-                    <div class="text-xs font-semibold uppercase tracking-wider text-indigo-600 mb-1">
-                        {{ activeReservation.room?.name }}
+                <div class="mt-4 bg-slate-50/80 p-4 rounded-xl border border-slate-200/70 text-left space-y-1.5">
+                    <div class="text-xs font-bold uppercase tracking-wider text-brand-700 flex items-center gap-1.5">
+                        <BuildingOffice2Icon class="w-3.5 h-3.5" />
+                        <span>{{ activeReservation.room?.name }}</span>
                     </div>
-                    <div class="text-sm font-bold text-gray-900">{{ activeReservation.title }}</div>
-                    <div class="text-xs text-gray-600 mt-1">
-                        <span>{{ formatDate(activeReservation.start_time) }}</span>
-                        <span class="mx-1">&rarr;</span>
-                        <span>{{ formatDate(activeReservation.end_time) }}</span>
+                    <div class="font-heading font-bold text-slate-900 text-sm">
+                        {{ activeReservation.title }}
                     </div>
-                    <div class="text-xs text-gray-500 mt-1">
-                        Pemesan: <span class="font-medium text-gray-700">{{ activeReservation.user?.name }}</span>
+                    <div class="text-xs text-slate-600 flex items-center gap-1.5 pt-1">
+                        <ClockIcon class="w-3.5 h-3.5 text-slate-400" />
+                        <span>{{ formatDate(activeReservation.start_time) }} &rarr; {{ formatDate(activeReservation.end_time) }}</span>
+                    </div>
+                    <div class="text-xs text-slate-500 pt-0.5">
+                        Pemesan: <span class="font-semibold text-slate-800">{{ activeReservation.user?.name }}</span>
                     </div>
                 </div>
 
                 <!-- QR Code Container -->
-                <div class="flex justify-center my-4">
-                    <div class="p-3 bg-white border-2 border-indigo-200 rounded-xl shadow-sm inline-block">
+                <div class="flex justify-center my-6">
+                    <div class="p-4 bg-white border-2 border-brand-200/80 rounded-2xl shadow-card inline-block">
                         <img
                             :src="route('reservations.qr-code', activeReservation.id)"
                             alt="QR Code Check-in"
@@ -380,13 +418,15 @@ const submitReject = () => {
                     </div>
                 </div>
 
-                <!-- Info Check-in Status -->
-                <div class="mb-4 text-xs">
-                    <div v-if="activeReservation.check_in?.checked_in_at" class="inline-flex items-center px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-semibold">
-                        &check; Sudah Check-In ({{ formatDate(activeReservation.check_in.checked_in_at) }})
+                <div class="text-center text-xs">
+                    <div
+                        v-if="activeReservation.check_in?.checked_in_at"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold"
+                    >
+                        <span>&check; Sudah Check-In ({{ formatDate(activeReservation.check_in.checked_in_at) }})</span>
                     </div>
-                    <div v-else class="text-gray-500">
-                        QR Code ini siap dipasang atau di-scan di pintu ruangan saat sesi kegiatan berlangsung.
+                    <div v-else class="text-slate-500 bg-slate-50 rounded-lg p-3 border border-slate-100">
+                        QR Code ini siap di-scan di pintu ruangan saat sesi kegiatan berlangsung.
                     </div>
                 </div>
 
@@ -399,4 +439,3 @@ const submitReject = () => {
         </Modal>
     </AuthenticatedLayout>
 </template>
-

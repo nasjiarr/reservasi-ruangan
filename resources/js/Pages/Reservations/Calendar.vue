@@ -4,11 +4,25 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
+import PageHeader from '@/Components/PageHeader.vue';
+import Card from '@/Components/Card.vue';
+import StatusBadge from '@/Components/StatusBadge.vue';
 import Modal from '@/Components/Modal.vue';
 import FullCalendar from '@fullcalendar/vue3';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
+import {
+    CalendarDaysIcon,
+    TableCellsIcon,
+    PlusIcon,
+    XMarkIcon,
+    BuildingOffice2Icon,
+    ClockIcon,
+    UserCircleIcon,
+    InformationCircleIcon,
+    DocumentTextIcon,
+} from '@heroicons/vue/24/outline';
 
 const props = defineProps({
     events: {
@@ -31,7 +45,6 @@ const handleReservationBroadcast = (eventData) => {
     const existingEvent = calendarApi.getEventById(eventData.id);
 
     if (existingEvent) {
-        // Jika statusnya dibatalkan atau ditolak, kita dapat menghapusnya atau update warna
         if (eventData.status === 'cancelled' || eventData.status === 'rejected') {
             existingEvent.remove();
         } else {
@@ -45,7 +58,6 @@ const handleReservationBroadcast = (eventData) => {
             existingEvent.setExtendedProp('end_formatted', eventData.extendedProps?.end_formatted);
         }
     } else {
-        // Tambahkan event baru ke FullCalendar jika statusnya pending atau approved
         if (eventData.status === 'pending' || eventData.status === 'approved') {
             calendarApi.addEvent({
                 id: eventData.id,
@@ -75,7 +87,6 @@ onUnmounted(() => {
 });
 
 const handleDateClick = (info) => {
-    // Redirect ke halaman create dengan query param date
     router.visit(route('reservations.create', { date: info.dateStr }));
 };
 
@@ -124,133 +135,140 @@ const calendarOptions = {
         hour12: false,
     },
 };
-
-const getStatusBadge = (status) => {
-    switch (status) {
-        case 'approved':
-            return { label: 'Disetujui', class: 'bg-emerald-100 text-emerald-800 border-emerald-300' };
-        case 'pending':
-            return { label: 'Menunggu Persetujuan', class: 'bg-amber-100 text-amber-800 border-amber-300' };
-        case 'rejected':
-            return { label: 'Ditolak', class: 'bg-red-100 text-red-800 border-red-300' };
-        case 'cancelled':
-            return { label: 'Dibatalkan', class: 'bg-gray-100 text-gray-800 border-gray-300' };
-        default:
-            return { label: status, class: 'bg-blue-100 text-blue-800 border-blue-300' };
-    }
-};
 </script>
 
 <template>
     <Head title="Kalender Jadwal Reservasi" />
 
     <AuthenticatedLayout>
-        <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                    Kalender Jadwal Ruangan
-                </h2>
-                <div class="flex items-center space-x-3">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+            <!-- Header Section -->
+            <PageHeader
+                title="Kalender Jadwal Ruangan"
+                description="Visualisasi ketersediaan dan jadwal pemakaian seluruh ruangan secara real-time."
+            >
+                <template #actions>
                     <Link :href="route('reservations.index')">
-                        <SecondaryButton>Daftar Tabel</SecondaryButton>
+                        <SecondaryButton class="gap-2 shadow-xs">
+                            <TableCellsIcon class="w-4 h-4 text-slate-500" />
+                            <span>Daftar Tabel</span>
+                        </SecondaryButton>
                     </Link>
                     <Link :href="route('reservations.create')">
-                        <PrimaryButton>+ Booking Ruangan</PrimaryButton>
+                        <PrimaryButton class="gap-2 shadow-sm">
+                            <PlusIcon class="w-4 h-4" />
+                            <span>Booking Ruangan</span>
+                        </PrimaryButton>
                     </Link>
+                </template>
+            </PageHeader>
+
+            <!-- Status Legend Card -->
+            <div class="bg-white p-4 rounded-xl border border-slate-200/80 shadow-card flex flex-wrap items-center justify-between gap-4 text-sm">
+                <div class="flex items-center gap-3">
+                    <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Keterangan:</span>
+                    <div class="flex flex-wrap items-center gap-4">
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-emerald-500 shadow-xs inline-block"></span>
+                            <span class="text-xs font-semibold text-slate-700">Disetujui</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="w-3 h-3 rounded-full bg-amber-500 shadow-xs inline-block"></span>
+                            <span class="text-xs font-semibold text-slate-700">Menunggu Persetujuan</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-xs text-slate-400 flex items-center gap-1.5">
+                    <InformationCircleIcon class="w-4 h-4 text-slate-400 shrink-0" />
+                    <span>Klik pada tanggal kosong di kalender untuk membuat pemesanan langsung.</span>
                 </div>
             </div>
-        </template>
 
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
-                <!-- Status Legend -->
-                <div class="bg-white p-4 shadow-sm sm:rounded-lg flex flex-wrap items-center justify-between gap-4 text-sm">
-                    <div class="text-gray-500 font-medium">Petunjuk Warna:</div>
-                    <div class="flex flex-wrap items-center gap-4">
-                        <div class="flex items-center space-x-1.5">
-                            <span class="w-3.5 h-3.5 rounded-full bg-emerald-500 inline-block"></span>
-                            <span class="text-gray-700">Disetujui</span>
-                        </div>
-                        <div class="flex items-center space-x-1.5">
-                            <span class="w-3.5 h-3.5 rounded-full bg-amber-500 inline-block"></span>
-                            <span class="text-gray-700">Menunggu (Pending)</span>
-                        </div>
-                    </div>
-                    <div class="text-xs text-gray-400 italic">
-                        * Klik pada tanggal kosong untuk membuat reservasi langsung.
-                    </div>
-                </div>
-
-                <!-- Calendar Card -->
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg p-6">
+            <!-- Calendar Container Card -->
+            <Card :no-padding="true">
+                <div class="p-6">
                     <FullCalendar ref="fullCalendarRef" :options="calendarOptions" />
                 </div>
-            </div>
+            </Card>
         </div>
 
         <!-- Detail Modal via Breeze Modal Component -->
         <Modal :show="isModalOpen" @close="closeModal">
             <div v-if="selectedEvent" class="p-6">
-                <div class="flex items-center justify-between border-b pb-3">
-                    <h3 class="text-lg font-semibold text-gray-900">
-                        Detail Reservasi
-                    </h3>
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between border-b border-slate-100 pb-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200/80 flex items-center justify-center text-brand-600">
+                            <CalendarDaysIcon class="w-4 h-4" />
+                        </div>
+                        <h3 class="font-heading font-bold text-base text-slate-900">
+                            Detail Reservasi Ruangan
+                        </h3>
+                    </div>
                     <button
                         @click="closeModal"
-                        class="text-gray-400 hover:text-gray-600 focus:outline-none"
+                        class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
                     >
-                        ✕
+                        <XMarkIcon class="w-5 h-5" />
                     </button>
                 </div>
 
-                <div class="mt-4 space-y-4 text-sm">
-                    <div>
-                        <span class="text-gray-500 block text-xs uppercase font-medium">Kegiatan / Judul</span>
-                        <p class="text-base font-semibold text-gray-800">{{ selectedEvent.title }}</p>
+                <!-- Modal Body -->
+                <div class="mt-5 space-y-4 text-sm">
+                    <!-- Title & Status -->
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <span class="text-[11px] uppercase font-bold text-slate-400 tracking-wider block">Kegiatan / Agenda</span>
+                            <h4 class="font-heading font-bold text-lg text-slate-900 mt-0.5">
+                                {{ selectedEvent.title }}
+                            </h4>
+                        </div>
+                        <StatusBadge :status="selectedEvent.status" size="sm" class="shrink-0" />
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <span class="text-gray-500 block text-xs uppercase font-medium">Ruangan</span>
-                            <p class="font-medium text-gray-800">{{ selectedEvent.room_name }}</p>
+                    <!-- Room & Requester Grid -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <span class="text-[11px] uppercase font-semibold text-slate-400 block">Ruangan</span>
+                            <div class="flex items-center gap-2 mt-1 font-semibold text-slate-800">
+                                <BuildingOffice2Icon class="w-4 h-4 text-teal-600 shrink-0" />
+                                <span>{{ selectedEvent.room_name }}</span>
+                            </div>
                         </div>
-                        <div>
-                            <span class="text-gray-500 block text-xs uppercase font-medium">Status</span>
-                            <span
-                                :class="getStatusBadge(selectedEvent.status).class"
-                                class="mt-1 px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full border"
-                            >
-                                {{ getStatusBadge(selectedEvent.status).label }}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <span class="text-gray-500 block text-xs uppercase font-medium">Waktu Mulai</span>
-                            <p class="text-gray-700">{{ selectedEvent.start }}</p>
-                        </div>
-                        <div>
-                            <span class="text-gray-500 block text-xs uppercase font-medium">Waktu Selesai</span>
-                            <p class="text-gray-700">{{ selectedEvent.end }}</p>
+                        <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <span class="text-[11px] uppercase font-semibold text-slate-400 block">Pemesan</span>
+                            <div class="flex items-center gap-2 mt-1 font-semibold text-slate-800">
+                                <UserCircleIcon class="w-4 h-4 text-slate-500 shrink-0" />
+                                <span class="truncate">{{ selectedEvent.user_name }}</span>
+                            </div>
                         </div>
                     </div>
 
-                    <div>
-                        <span class="text-gray-500 block text-xs uppercase font-medium">Pemesan</span>
-                        <p class="text-gray-700">{{ selectedEvent.user_name }}</p>
+                    <!-- Schedule -->
+                    <div class="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <span class="text-[11px] uppercase font-semibold text-slate-400 block">Waktu Pelaksanaan</span>
+                        <div class="flex items-center gap-2 mt-1 text-slate-700 font-medium">
+                            <ClockIcon class="w-4 h-4 text-slate-400 shrink-0" />
+                            <span>{{ selectedEvent.start }}</span>
+                            <span class="text-slate-400">&rarr;</span>
+                            <span>{{ selectedEvent.end }}</span>
+                        </div>
                     </div>
 
-                    <div v-if="selectedEvent.description">
-                        <span class="text-gray-500 block text-xs uppercase font-medium">Deskripsi / Keperluan</span>
-                        <p class="text-gray-700 whitespace-pre-line mt-1 bg-gray-50 p-3 rounded border">
+                    <!-- Description -->
+                    <div v-if="selectedEvent.description" class="space-y-1 pt-1">
+                        <span class="text-[11px] uppercase font-semibold text-slate-400 block">Keperluan / Keterangan</span>
+                        <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-100 text-xs text-slate-600 whitespace-pre-line leading-relaxed">
                             {{ selectedEvent.description }}
-                        </p>
+                        </div>
                     </div>
                 </div>
 
+                <!-- Modal Footer -->
                 <div class="mt-6 flex justify-end">
-                    <SecondaryButton @click="closeModal">Tutup</SecondaryButton>
+                    <SecondaryButton @click="closeModal">
+                        Tutup
+                    </SecondaryButton>
                 </div>
             </div>
         </Modal>
@@ -258,32 +276,74 @@ const getStatusBadge = (status) => {
 </template>
 
 <style>
-/* Penyesuaian tampilan FullCalendar agar selaras dengan Tailwind */
+/* Styling FullCalendar selaras dengan Brand Nordic Teal & Deep Slate */
 .fc .fc-toolbar-title {
+    font-family: 'Plus Jakarta Sans', var(--font-heading, sans-serif) !important;
     font-size: 1.25rem !important;
-    font-weight: 600 !important;
-    color: #1f2937 !important;
+    font-weight: 700 !important;
+    color: #0f172a !important;
+    letter-spacing: -0.02em !important;
 }
+
 .fc .fc-button-primary {
-    background-color: #4f46e5 !important;
-    border-color: #4338ca !important;
-    font-size: 0.875rem !important;
-    font-weight: 500 !important;
-    text-transform: capitalize !important;
-    border-radius: 0.375rem !important;
+    background-color: #0d9488 !important;
+    border-color: #0f766e !important;
+    font-size: 0.8125rem !important;
+    font-weight: 600 !important;
+    border-radius: 0.5rem !important;
+    padding: 0.45rem 0.85rem !important;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+    transition: all 0.15s ease-in-out !important;
 }
+
 .fc .fc-button-primary:hover {
-    background-color: #4338ca !important;
+    background-color: #0f766e !important;
+    border-color: #115e59 !important;
 }
+
 .fc .fc-button-primary:disabled {
-    background-color: #a5b4fc !important;
-    border-color: #a5b4fc !important;
+    background-color: #99f6e4 !important;
+    border-color: #5eead4 !important;
+    opacity: 0.6 !important;
 }
+
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+    background-color: #115e59 !important;
+    border-color: #042f2e !important;
+}
+
+.fc-theme-standard th {
+    background-color: #f8fafc !important;
+    border-color: #e2e8f0 !important;
+    padding: 0.6rem 0 !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    color: #64748b !important;
+    letter-spacing: 0.05em !important;
+}
+
+.fc-theme-standard td {
+    border-color: #f1f5f9 !important;
+}
+
+.fc .fc-day-today {
+    background-color: rgba(13, 148, 136, 0.04) !important;
+}
+
 .fc-event {
     cursor: pointer !important;
-    border-radius: 4px !important;
-    padding: 2px 4px !important;
-    font-size: 0.8rem !important;
+    border-radius: 6px !important;
+    padding: 2px 6px !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+    transition: transform 0.15s ease !important;
+}
+
+.fc-event:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.08) !important;
 }
 </style>
-

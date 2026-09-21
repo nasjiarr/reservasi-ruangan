@@ -3,11 +3,25 @@ import { ref, computed } from 'vue';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PrimaryButton from '@/Components/PrimaryButton.vue';
-import DangerButton from '@/Components/DangerButton.vue';
 import SecondaryButton from '@/Components/SecondaryButton.vue';
+import PageHeader from '@/Components/PageHeader.vue';
+import Card from '@/Components/Card.vue';
+import StatusBadge from '@/Components/StatusBadge.vue';
+import EmptyState from '@/Components/EmptyState.vue';
 import Modal from '@/Components/Modal.vue';
 import { format, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
+import {
+    CalendarDaysIcon,
+    PlusIcon,
+    QrCodeIcon,
+    XMarkIcon,
+    BuildingOffice2Icon,
+    ClockIcon,
+    CheckCircleIcon,
+    ClipboardDocumentListIcon,
+    XCircleIcon,
+} from '@heroicons/vue/24/outline';
 
 const props = defineProps({
     reservations: {
@@ -47,36 +61,6 @@ const cancelReservation = (reservation) => {
     }
 };
 
-const getStatusBadgeClass = (status) => {
-    switch (status) {
-        case 'pending':
-            return 'bg-amber-100 text-amber-800 border-amber-300';
-        case 'approved':
-            return 'bg-emerald-100 text-emerald-800 border-emerald-300';
-        case 'rejected':
-            return 'bg-red-100 text-red-800 border-red-300';
-        case 'cancelled':
-            return 'bg-gray-100 text-gray-800 border-gray-300';
-        default:
-            return 'bg-blue-100 text-blue-800 border-blue-300';
-    }
-};
-
-const formatStatus = (status) => {
-    switch (status) {
-        case 'pending':
-            return 'Menunggu Persetujuan';
-        case 'approved':
-            return 'Disetujui';
-        case 'rejected':
-            return 'Ditolak';
-        case 'cancelled':
-            return 'Dibatalkan';
-        default:
-            return status;
-    }
-};
-
 // Syarat bisa cancel: milik sendiri dan pending, atau admin
 const canCancel = (reservation) => {
     if (reservation.status === 'cancelled') return false;
@@ -103,174 +87,226 @@ const closeQrModal = () => {
     <Head title="Daftar Reservasi" />
 
     <AuthenticatedLayout>
-        <template #header>
-            <div class="flex items-center justify-between">
-                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                    Daftar Reservasi Ruangan
-                </h2>
-                <div class="flex items-center space-x-3">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+            <!-- Header Section -->
+            <PageHeader
+                title="Daftar Reservasi Ruangan"
+                description="Kelola dan pantau seluruh pengajuan peminjaman ruangan dan riwayat jadwal acara."
+                :badge="`${reservationList.length} Reservasi`"
+            >
+                <template #actions>
                     <Link :href="route('reservations.calendar')">
-                        <span class="inline-flex items-center px-4 py-2 bg-white border border-gray-300 rounded-md font-semibold text-xs text-gray-700 uppercase tracking-widest shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                            Lihat Kalender
-                        </span>
+                        <SecondaryButton class="gap-2 shadow-xs">
+                            <CalendarDaysIcon class="w-4 h-4 text-slate-500" />
+                            <span>Lihat Kalender</span>
+                        </SecondaryButton>
                     </Link>
                     <Link :href="route('reservations.create')">
-                        <PrimaryButton>+ Booking Ruangan</PrimaryButton>
+                        <PrimaryButton class="gap-2 shadow-sm">
+                            <PlusIcon class="w-4 h-4" />
+                            <span>Booking Ruangan</span>
+                        </PrimaryButton>
                     </Link>
-                </div>
-            </div>
-        </template>
+                </template>
+            </PageHeader>
 
-        <div class="py-12">
-            <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
-                <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                    <div class="p-6 text-gray-900">
-                        <div v-if="reservationList.length === 0" class="text-center py-12">
-                            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                            <h3 class="mt-2 text-sm font-medium text-gray-900">Belum ada reservasi</h3>
-                            <p class="mt-1 text-sm text-gray-500">Mulai buat pengajuan peminjaman ruangan sekarang.</p>
-                            <div class="mt-6">
-                                <Link :href="route('reservations.create')">
-                                    <PrimaryButton>Booking Sekarang</PrimaryButton>
-                                </Link>
-                            </div>
-                        </div>
+            <!-- Empty State -->
+            <EmptyState
+                v-if="reservationList.length === 0"
+                title="Belum Ada Reservasi"
+                description="Mulai buat pengajuan peminjaman ruangan untuk kegiatan, rapat, atau acara Anda sekarang."
+            >
+                <template #icon>
+                    <ClipboardDocumentListIcon class="w-7 h-7 text-slate-400" />
+                </template>
+                <template #action>
+                    <Link :href="route('reservations.create')">
+                        <PrimaryButton class="gap-2">
+                            <PlusIcon class="w-4 h-4" />
+                            <span>Booking Sekarang</span>
+                        </PrimaryButton>
+                    </Link>
+                </template>
+            </EmptyState>
 
-                        <div v-else class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Kegiatan / Judul
-                                        </th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Ruangan
-                                        </th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Pemesan
-                                        </th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Waktu Mulai
-                                        </th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Waktu Selesai
-                                        </th>
-                                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Status
-                                        </th>
-                                        <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                            Aksi
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
-                                    <tr v-for="res in reservationList" :key="res.id" class="hover:bg-gray-50">
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <div class="font-semibold text-gray-900">{{ res.title }}</div>
-                                            <div v-if="res.description" class="text-xs text-gray-500 truncate max-w-xs">
-                                                {{ res.description }}
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                                            <span class="font-medium">{{ res.room?.name || '-' }}</span>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+            <!-- Reservation Table Card -->
+            <Card v-else :no-padding="true">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-slate-200/80">
+                        <thead class="bg-slate-50/80">
+                            <tr>
+                                <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                    Kegiatan / Judul
+                                </th>
+                                <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                    Ruangan
+                                </th>
+                                <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                    Pemesan
+                                </th>
+                                <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                    Jadwal Waktu
+                                </th>
+                                <th scope="col" class="px-6 py-3.5 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                    Status
+                                </th>
+                                <th scope="col" class="px-6 py-3.5 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                    Aksi
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-slate-100">
+                            <tr
+                                v-for="res in reservationList"
+                                :key="res.id"
+                                class="hover:bg-slate-50/70 transition-colors"
+                            >
+                                <!-- Title & Description -->
+                                <td class="px-6 py-4">
+                                    <div class="font-heading font-bold text-sm text-slate-900 line-clamp-1">
+                                        {{ res.title }}
+                                    </div>
+                                    <div v-if="res.description" class="text-xs text-slate-400 truncate max-w-xs mt-0.5">
+                                        {{ res.description }}
+                                    </div>
+                                </td>
+
+                                <!-- Room Info -->
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-7 h-7 rounded-lg bg-teal-50 border border-teal-200/60 flex items-center justify-center text-brand-600 shrink-0">
+                                            <BuildingOffice2Icon class="w-3.5 h-3.5" />
+                                        </div>
+                                        <span class="font-medium text-slate-800 text-sm">
+                                            {{ res.room?.name || '-' }}
+                                        </span>
+                                    </div>
+                                </td>
+
+                                <!-- Requester -->
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-6 h-6 rounded-full bg-slate-100 text-slate-600 font-bold text-[10px] flex items-center justify-center shrink-0">
+                                            {{ res.user?.name?.charAt(0).toUpperCase() || '?' }}
+                                        </div>
+                                        <span class="text-sm text-slate-600">
                                             {{ res.user?.name || '-' }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            {{ formatDate(res.start_time) }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                            {{ formatDate(res.end_time) }}
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap">
-                                            <span
-                                                :class="getStatusBadgeClass(res.status)"
-                                                class="px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full border"
-                                            >
-                                                {{ formatStatus(res.status) }}
-                                            </span>
-                                        </td>
-                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium space-x-2">
-                                            <button
-                                                v-if="res.status === 'approved'"
-                                                type="button"
-                                                @click="openQrModal(res)"
-                                                class="inline-flex items-center px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold rounded border border-indigo-200 transition"
-                                                title="Lihat QR Code Check-in"
-                                            >
-                                                <svg class="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
-                                                </svg>
-                                                QR Code
-                                            </button>
-                                            <DangerButton
-                                                v-if="canCancel(res)"
-                                                class="!px-3 !py-1 !text-xs"
-                                                @click="cancelReservation(res)"
-                                            >
-                                                Batalkan
-                                            </DangerButton>
-                                            <span v-else-if="res.status !== 'approved'" class="text-xs text-gray-400">-</span>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                                        </span>
+                                    </div>
+                                </td>
 
-                        <!-- Pagination Links -->
-                        <div v-if="paginationLinks.length > 3" class="mt-6 flex justify-center">
-                            <div class="flex flex-wrap -mb-1">
-                                <template v-for="(link, key) in paginationLinks" :key="key">
-                                    <div
-                                        v-if="link.url === null"
-                                        class="mr-1 mb-1 px-3 py-2 text-sm leading-4 text-gray-400 border rounded"
-                                        v-html="link.label"
-                                    />
-                                    <Link
-                                        v-else
-                                        class="mr-1 mb-1 px-3 py-2 text-sm leading-4 border rounded hover:bg-gray-100 focus:border-indigo-500 focus:text-indigo-500"
-                                        :class="{ 'bg-indigo-600 text-white hover:bg-indigo-700': link.active }"
-                                        :href="link.url"
-                                        v-html="link.label"
-                                    />
-                                </template>
-                            </div>
-                        </div>
-                    </div>
+                                <!-- Schedule -->
+                                <td class="px-6 py-4 whitespace-nowrap text-xs text-slate-600">
+                                    <div class="flex items-center gap-1.5 text-slate-700 font-medium">
+                                        <ClockIcon class="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                                        <span>{{ formatDate(res.start_time) }}</span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-400 pl-5 mt-0.5">
+                                        s/d {{ formatDate(res.end_time) }}
+                                    </div>
+                                </td>
+
+                                <!-- Status Badge -->
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <StatusBadge :status="res.status" size="sm" />
+                                </td>
+
+                                <!-- Actions -->
+                                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <div class="flex items-center justify-end gap-1.5">
+                                        <!-- QR Code Button -->
+                                        <button
+                                            v-if="res.status === 'approved'"
+                                            type="button"
+                                            @click="openQrModal(res)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-teal-50 hover:bg-teal-100 text-brand-700 border border-teal-200/80 rounded-lg text-xs font-semibold transition shadow-xs"
+                                            title="Tampilkan QR Code Check-in"
+                                        >
+                                            <QrCodeIcon class="w-3.5 h-3.5" />
+                                            <span>QR Code</span>
+                                        </button>
+
+                                        <!-- Cancel Button -->
+                                        <button
+                                            v-if="canCancel(res)"
+                                            type="button"
+                                            @click="cancelReservation(res)"
+                                            class="inline-flex items-center gap-1 px-2.5 py-1.5 bg-white hover:bg-rose-50 text-rose-600 hover:text-rose-700 border border-slate-200 hover:border-rose-200 rounded-lg text-xs font-semibold transition shadow-xs"
+                                            title="Batalkan Reservasi"
+                                        >
+                                            <XCircleIcon class="w-3.5 h-3.5" />
+                                            <span>Batalkan</span>
+                                        </button>
+
+                                        <span v-else-if="res.status !== 'approved'" class="text-xs text-slate-400 px-2">-</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
-            </div>
+
+                <!-- Pagination Footer -->
+                <div v-if="paginationLinks.length > 3" class="px-6 py-4 border-t border-slate-100 flex justify-center bg-slate-50/50">
+                    <nav class="inline-flex rounded-xl shadow-xs border border-slate-200 bg-white p-1 gap-1">
+                        <template v-for="(link, key) in paginationLinks" :key="key">
+                            <div
+                                v-if="link.url === null"
+                                class="px-3 py-1.5 text-xs font-medium text-slate-400 rounded-lg cursor-not-allowed"
+                                v-html="link.label"
+                            />
+                            <Link
+                                v-else
+                                class="px-3 py-1.5 text-xs font-medium rounded-lg transition-colors"
+                                :class="link.active ? 'bg-brand-600 text-white font-semibold shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'"
+                                :href="link.url"
+                                v-html="link.label"
+                            />
+                        </template>
+                    </nav>
+                </div>
+            </Card>
         </div>
 
         <!-- Modal QR Code Check-In -->
         <Modal :show="isQrModalOpen" @close="closeQrModal" max-width="md">
-            <div class="p-6 text-center" v-if="activeReservation">
-                <div class="flex items-center justify-between pb-3 border-b mb-4">
-                    <h3 class="text-lg font-bold text-gray-900">
-                        QR Code Check-In Ruangan
-                    </h3>
-                    <button @click="closeQrModal" class="text-gray-400 hover:text-gray-600 text-xl font-bold">
-                        &times;
+            <div class="p-6" v-if="activeReservation">
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between pb-4 border-b border-slate-100">
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 rounded-lg bg-teal-50 border border-teal-200/80 flex items-center justify-center text-brand-600">
+                            <QrCodeIcon class="w-4 h-4" />
+                        </div>
+                        <h3 class="font-heading font-bold text-base text-slate-900">
+                            QR Code Check-In Ruangan
+                        </h3>
+                    </div>
+                    <button
+                        @click="closeQrModal"
+                        class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition"
+                    >
+                        <XMarkIcon class="w-5 h-5" />
                     </button>
                 </div>
 
-                <div class="mb-4 text-left bg-gray-50 p-3 rounded-lg border border-gray-100">
-                    <div class="text-xs font-semibold uppercase tracking-wider text-indigo-600 mb-1">
-                        {{ activeReservation.room?.name }}
+                <!-- Event Details Card -->
+                <div class="mt-4 bg-slate-50/80 p-4 rounded-xl border border-slate-200/70 text-left space-y-1.5">
+                    <div class="text-xs font-bold uppercase tracking-wider text-brand-700 flex items-center gap-1.5">
+                        <BuildingOffice2Icon class="w-3.5 h-3.5" />
+                        <span>{{ activeReservation.room?.name }}</span>
                     </div>
-                    <div class="text-sm font-bold text-gray-900">{{ activeReservation.title }}</div>
-                    <div class="text-xs text-gray-600 mt-1">
-                        <span>{{ formatDate(activeReservation.start_time) }}</span>
-                        <span class="mx-1">&rarr;</span>
-                        <span>{{ formatDate(activeReservation.end_time) }}</span>
+                    <div class="font-heading font-bold text-slate-900 text-sm">
+                        {{ activeReservation.title }}
+                    </div>
+                    <div class="text-xs text-slate-600 flex items-center gap-1.5 pt-1">
+                        <ClockIcon class="w-3.5 h-3.5 text-slate-400" />
+                        <span>{{ formatDate(activeReservation.start_time) }} &rarr; {{ formatDate(activeReservation.end_time) }}</span>
                     </div>
                 </div>
 
-                <!-- QR Code Container -->
-                <div class="flex justify-center my-4">
-                    <div class="p-3 bg-white border-2 border-indigo-200 rounded-xl shadow-sm inline-block">
+                <!-- QR Code Box -->
+                <div class="flex justify-center my-6">
+                    <div class="p-4 bg-white border-2 border-brand-200/80 rounded-2xl shadow-card inline-block">
                         <img
                             :src="route('reservations.qr-code', activeReservation.id)"
                             alt="QR Code Check-in"
@@ -280,15 +316,19 @@ const closeQrModal = () => {
                 </div>
 
                 <!-- Info Check-in Status -->
-                <div class="mb-4 text-xs">
-                    <div v-if="activeReservation.check_in?.checked_in_at" class="inline-flex items-center px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 font-semibold">
-                        &check; Sudah Check-In ({{ formatDate(activeReservation.check_in.checked_in_at) }})
+                <div class="text-center text-xs">
+                    <div
+                        v-if="activeReservation.check_in?.checked_in_at"
+                        class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold"
+                    >
+                        <span>&check; Sudah Check-In ({{ formatDate(activeReservation.check_in.checked_in_at) }})</span>
                     </div>
-                    <div v-else class="text-gray-500">
-                        Scan QR ini di depan ruangan menggunakan kamera HP untuk konfirmasi kehadiran (mulai 15 menit sebelum acara).
+                    <div v-else class="text-slate-500 bg-slate-50 rounded-lg p-3 border border-slate-100 text-xs">
+                        Scan QR ini menggunakan kamera ponsel di depan pintu ruangan untuk konfirmasi kehadiran (mulai 15 menit sebelum kegiatan).
                     </div>
                 </div>
 
+                <!-- Modal Footer -->
                 <div class="mt-6 flex justify-end">
                     <SecondaryButton @click="closeQrModal">
                         Tutup
@@ -298,4 +338,3 @@ const closeQrModal = () => {
         </Modal>
     </AuthenticatedLayout>
 </template>
-

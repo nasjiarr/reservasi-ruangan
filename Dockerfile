@@ -3,7 +3,16 @@
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
-# Stage 1: Frontend Asset Compilation (Vite + Tailwind + Vue 3)
+# Stage 1: PHP Dependencies (Composer)
+# ------------------------------------------------------------------------------
+FROM composer:2 AS composer_build
+WORKDIR /app
+
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction --ignore-platform-reqs
+
+# ------------------------------------------------------------------------------
+# Stage 2: Frontend Asset Compilation (Vite + Tailwind + Vue 3)
 # ------------------------------------------------------------------------------
 FROM node:20-alpine AS frontend
 WORKDIR /app
@@ -12,10 +21,13 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
+# Copy vendor from composer_build so tightenco/ziggy is available for Vite
+COPY --from=composer_build /app/vendor ./vendor
+
 RUN npm run build
 
 # ------------------------------------------------------------------------------
-# Stage 2: PHP-FPM Application Image
+# Stage 3: PHP-FPM Application Image
 # ------------------------------------------------------------------------------
 FROM php:8.2-fpm-alpine AS app
 
@@ -50,14 +62,13 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 WORKDIR /var/www/html
 
-# Copy dependency definitions and install production packages
-COPY composer.json composer.lock ./
-RUN composer install --no-dev --optimize-autoloader --no-scripts --no-interaction
-
-# Copy full application code
+# Copy application source code
 COPY . .
 
-# Copy compiled frontend assets from Stage 1
+# Copy pre-installed vendor from composer_build
+COPY --from=composer_build /app/vendor ./vendor
+
+# Copy compiled frontend assets from Stage 2
 COPY --from=frontend /app/public/build ./public/build
 
 # Set correct storage and bootstrap permissions
@@ -67,4 +78,3 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 EXPOSE 9000
 
 CMD ["php-fpm"]
-
