@@ -47,35 +47,65 @@ class ReservationController extends Controller
             ->whereIn('status', ['pending', 'approved'])
             ->get()
             ->map(function ($res) {
-                $color = match ($res->status) {
-                    'approved' => '#10B981', // green-500
-                    'pending' => '#F59E0B',  // amber-500
-                    'rejected' => '#EF4444', // red-500
-                    'cancelled' => '#6B7280',// gray-500
-                    default => '#3B82F6',
+                $styles = match ($res->status) {
+                    'approved' => [
+                        'bg' => '#ECFDF5',
+                        'border' => '#10B981',
+                        'text' => '#065F46',
+                    ],
+                    'pending' => [
+                        'bg' => '#FFFBEB',
+                        'border' => '#F59E0B',
+                        'text' => '#92400E',
+                    ],
+                    'rejected' => [
+                        'bg' => '#FEF2F2',
+                        'border' => '#EF4444',
+                        'text' => '#991B1B',
+                    ],
+                    'cancelled' => [
+                        'bg' => '#F3F4F6',
+                        'border' => '#9CA3AF',
+                        'text' => '#374151',
+                    ],
+                    default => [
+                        'bg' => '#EFF6FF',
+                        'border' => '#3B82F6',
+                        'text' => '#1E40AF',
+                    ],
                 };
 
                 return [
                     'id' => (string) $res->id,
-                    'title' => $res->room->name . ' - ' . $res->title,
+                    'title' => $res->title,
                     'start' => $res->start_time->toIso8601String(),
                     'end' => $res->end_time->toIso8601String(),
-                    'backgroundColor' => $color,
-                    'borderColor' => $color,
+                    'backgroundColor' => $styles['bg'],
+                    'borderColor' => $styles['border'],
+                    'textColor' => $styles['text'],
                     'extendedProps' => [
-                        'room_name' => $res->room->name,
-                        'user_name' => $res->user->name,
+                        'room_id' => $res->room_id,
+                        'room_name' => $res->room?->name ?? 'Ruangan',
+                        'user_name' => $res->user?->name ?? 'Pemesan',
                         'title' => $res->title,
                         'description' => $res->description,
                         'status' => $res->status,
+                        'start_time' => $res->start_time->format('H:i'),
+                        'end_time' => $res->end_time->format('H:i'),
                         'start_formatted' => $res->start_time->format('d M Y H:i'),
                         'end_formatted' => $res->end_time->format('d M Y H:i'),
                     ],
                 ];
             });
 
+        $rooms = Room::where('status', 'active')
+            ->select('id', 'name', 'location')
+            ->orderBy('name')
+            ->get();
+
         return Inertia::render('Reservations/Calendar', [
             'events' => $reservations,
+            'rooms' => $rooms,
         ]);
     }
 
@@ -111,8 +141,10 @@ class ReservationController extends Controller
             Notification::send($approvers, new ReservationCreatedNotification($reservation));
         }
 
-        // Broadcast event status changed
-        event(new ReservationStatusChanged($reservation));
+        // Broadcast event status changed (graceful fallback jika Reverb offline)
+        rescue(fn () => event(new ReservationStatusChanged($reservation)), function ($e) {
+            \Illuminate\Support\Facades\Log::warning('Broadcast failed (Reverb offline): ' . $e->getMessage());
+        }, false);
 
         return redirect()->route('reservations.index')->with('success', 'Reservasi berhasil diajukan dan menunggu persetujuan.');
     }

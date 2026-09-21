@@ -14,6 +14,7 @@ import {
     ClipboardDocumentCheckIcon,
     ShieldCheckIcon,
     ChartBarSquareIcon,
+    PresentationChartLineIcon,
     Bars3Icon,
     XMarkIcon,
     ChevronDownIcon,
@@ -73,6 +74,14 @@ const showingNavigationDropdown = ref(false);
                             >
                                 <ChartBarSquareIcon class="w-4 h-4 shrink-0" />
                                 <span>Laporan</span>
+                            </NavLink>
+                            <NavLink
+                                v-if="$page.props.auth.user?.roles?.some(role => ['admin', 'manager'].includes(role))"
+                                :href="route('analytics.index')"
+                                :active="route().current('analytics.*')"
+                            >
+                                <PresentationChartLineIcon class="w-4 h-4 shrink-0" />
+                                <span>Analytics</span>
                             </NavLink>
                         </div>
                     </div>
@@ -179,6 +188,16 @@ const showingNavigationDropdown = ref(false);
                         <div class="flex items-center gap-3">
                             <ChartBarSquareIcon class="w-5 h-5" />
                             <span>Laporan</span>
+                        </div>
+                    </ResponsiveNavLink>
+                    <ResponsiveNavLink
+                        v-if="$page.props.auth.user?.roles?.some(role => ['admin', 'manager'].includes(role))"
+                        :href="route('analytics.index')"
+                        :active="route().current('analytics.*')"
+                    >
+                        <div class="flex items-center gap-3">
+                            <PresentationChartLineIcon class="w-5 h-5" />
+                            <span>Analytics</span>
                         </div>
                     </ResponsiveNavLink>
                 </div>

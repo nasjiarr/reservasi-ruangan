@@ -1,7 +1,9 @@
 <?php
 
+use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\CheckInController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportController;
@@ -26,9 +28,9 @@ Route::get('/', function () {
     return auth()->check() ? redirect()->route('dashboard') : redirect()->route('login');
 });
 
-Route::get('/dashboard', function () {
-    return Inertia::render('Dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
 
 // Public Check-In Routes (Accessed via QR code scan without auth requirement)
 Route::get('/check-in/{token}', [CheckInController::class, 'show'])->name('checkin.show');
@@ -65,6 +67,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/export-excel', [ReportController::class, 'exportExcel'])->name('export-excel');
         Route::get('/export-pdf', [ReportController::class, 'exportPdf'])->name('export-pdf');
     });
+
+    // Analytics Dashboard
+    Route::get('/analytics', [AnalyticsController::class, 'index'])
+        ->middleware('permission:view-reports')
+        ->name('analytics.index');
 
     // Notifications (JSON API)
     Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');

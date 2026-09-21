@@ -74,8 +74,10 @@ class ApprovalController extends Controller
         // Kirim notifikasi persetujuan ke pemesan
         $reservation->user->notify(new ReservationApprovedNotification($reservation, $request->user()));
 
-        // Broadcast perubahan status ke FullCalendar
-        event(new ReservationStatusChanged($reservation));
+        // Broadcast perubahan status ke FullCalendar (graceful fallback jika Reverb offline)
+        rescue(fn () => event(new ReservationStatusChanged($reservation)), function ($e) {
+            \Illuminate\Support\Facades\Log::warning('Broadcast failed (Reverb offline): ' . $e->getMessage());
+        }, false);
 
         return redirect()->back()->with('success', 'Reservasi berhasil disetujui.');
     }
@@ -109,8 +111,10 @@ class ApprovalController extends Controller
         // Kirim notifikasi penolakan ke pemesan
         $reservation->user->notify(new ReservationRejectedNotification($reservation, $validated['note']));
 
-        // Broadcast perubahan status ke FullCalendar
-        event(new ReservationStatusChanged($reservation));
+        // Broadcast perubahan status ke FullCalendar (graceful fallback jika Reverb offline)
+        rescue(fn () => event(new ReservationStatusChanged($reservation)), function ($e) {
+            \Illuminate\Support\Facades\Log::warning('Broadcast failed (Reverb offline): ' . $e->getMessage());
+        }, false);
 
         return redirect()->back()->with('success', 'Reservasi berhasil ditolak.');
     }
