@@ -70,6 +70,7 @@ class RoomController extends Controller
 
         return Inertia::render('Rooms/Show', [
             'room' => $room,
+            'breadcrumbOverride' => $room->name,
         ]);
     }
 
@@ -84,6 +85,7 @@ class RoomController extends Controller
         return Inertia::render('Rooms/Edit', [
             'room' => $room,
             'facilities' => $facilities,
+            'breadcrumbOverride' => $room->name,
         ]);
     }
 

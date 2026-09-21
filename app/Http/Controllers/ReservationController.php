@@ -165,6 +165,7 @@ class ReservationController extends Controller
 
         return Inertia::render('Reservations/Show', [
             'reservation' => $reservation,
+            'breadcrumbOverride' => $reservation->title,
         ]);
     }
 

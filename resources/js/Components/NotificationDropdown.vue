@@ -4,6 +4,12 @@ import { router } from '@inertiajs/vue3';
 import axios from 'axios';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
+import {
+    BellIcon,
+    CheckCircleIcon,
+    XCircleIcon,
+    CalendarDaysIcon,
+} from '@heroicons/vue/24/outline';
 
 const isOpen = ref(false);
 const notifications = ref([]);
@@ -95,28 +101,16 @@ onUnmounted(() => {
         <button
             type="button"
             @click="toggleDropdown"
-            class="relative p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-full focus:outline-none focus:ring-2 focus:ring-indigo-500 transition duration-150"
+            class="relative p-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500 transition duration-150"
             aria-label="Notifikasi"
+            :title="unreadCount > 0 ? `${unreadCount} notifikasi belum dibaca` : 'Notifikasi'"
         >
-            <svg
-                class="w-6 h-6"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-            >
-                <path
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    stroke-width="2"
-                    d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-                />
-            </svg>
+            <BellIcon class="w-5 h-5" />
 
-            <!-- Unread Badge -->
+            <!-- Unread Badge with Nordic Teal Styling -->
             <span
                 v-if="unreadCount > 0"
-                class="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/4 -translate-y-1/4 bg-red-600 rounded-full min-w-[1.25rem]"
+                class="absolute -top-0.5 -right-0.5 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-white transform bg-rose-600 rounded-full min-w-[1.2rem] h-[1.2rem] ring-2 ring-white shadow-xs animate-pulse"
             >
                 {{ unreadCount > 99 ? '99+' : unreadCount }}
             </span>
@@ -125,33 +119,42 @@ onUnmounted(() => {
         <!-- Dropdown Menu -->
         <div
             v-if="isOpen"
-            class="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50 overflow-hidden"
+            class="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-2xl shadow-xl border border-slate-200/90 py-0 z-50 overflow-hidden ring-1 ring-black/5"
         >
             <!-- Header -->
-            <div class="px-4 py-2 border-b border-gray-100 flex items-center justify-between">
-                <h4 class="text-sm font-semibold text-gray-800">
-                    Notifikasi
-                    <span v-if="unreadCount > 0" class="text-xs font-normal text-indigo-600 ml-1">
-                        ({{ unreadCount }} belum dibaca)
+            <div class="px-4 py-3 bg-slate-50/80 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <h4 class="text-xs font-heading font-extrabold uppercase tracking-wider text-slate-800">
+                        Notifikasi
+                    </h4>
+                    <span
+                        v-if="unreadCount > 0"
+                        class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-brand-100 text-brand-800"
+                    >
+                        {{ unreadCount }} baru
                     </span>
-                </h4>
+                </div>
                 <button
                     v-if="unreadCount > 0"
                     @click="markAllAsRead"
-                    class="text-xs text-indigo-600 hover:text-indigo-800 font-medium transition"
+                    class="text-xs text-brand-600 hover:text-brand-800 font-semibold transition hover:underline"
                 >
-                    Tandai semua dibaca
+                    Tandai dibaca
                 </button>
             </div>
 
             <!-- List Notifikasi -->
-            <div class="max-h-80 overflow-y-auto divide-y divide-gray-100">
-                <div v-if="loading && notifications.length === 0" class="p-4 text-center text-xs text-gray-500">
+            <div class="max-h-84 overflow-y-auto divide-y divide-slate-100">
+                <div v-if="loading && notifications.length === 0" class="p-6 text-center text-xs text-slate-400">
                     Memuat notifikasi...
                 </div>
 
-                <div v-else-if="notifications.length === 0" class="p-6 text-center text-sm text-gray-400">
-                    Tidak ada notifikasi.
+                <div v-else-if="notifications.length === 0" class="p-8 text-center">
+                    <div class="w-10 h-10 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-2">
+                        <BellIcon class="w-5 h-5" />
+                    </div>
+                    <div class="text-xs font-bold text-slate-700">Tidak ada notifikasi</div>
+                    <div class="text-[11px] text-slate-400 mt-0.5">Semua permohonan dan konfirmasi terbaru akan muncul di sini.</div>
                 </div>
 
                 <template v-else>
@@ -159,32 +162,54 @@ onUnmounted(() => {
                         v-for="item in notifications"
                         :key="item.id"
                         @click="handleNotificationClick(item)"
-                        class="p-3.5 hover:bg-gray-50 cursor-pointer transition flex items-start space-x-3"
-                        :class="{ 'bg-indigo-50/40': !item.read_at }"
+                        class="p-3.5 hover:bg-slate-50 cursor-pointer transition flex items-start space-x-3 group relative"
+                        :class="{ 'bg-brand-50/30': !item.read_at }"
                     >
-                        <!-- Unread Dot -->
-                        <div class="mt-1 shrink-0">
-                            <span
-                                v-if="!item.read_at"
-                                class="w-2.5 h-2.5 bg-indigo-600 rounded-full inline-block"
-                            ></span>
-                            <span
+                        <!-- Type-specific Semantic Icon -->
+                        <div class="shrink-0 mt-0.5">
+                            <div
+                                v-if="item.data?.type === 'approved'"
+                                class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-200/60 flex items-center justify-center"
+                            >
+                                <CheckCircleIcon class="w-4 h-4 stroke-2" />
+                            </div>
+                            <div
+                                v-else-if="item.data?.type === 'rejected'"
+                                class="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 border border-rose-200/60 flex items-center justify-center"
+                            >
+                                <XCircleIcon class="w-4 h-4 stroke-2" />
+                            </div>
+                            <div
                                 v-else
-                                class="w-2.5 h-2.5 bg-gray-300 rounded-full inline-block"
-                            ></span>
+                                class="w-8 h-8 rounded-xl bg-brand-50 text-brand-700 border border-brand-200/60 flex items-center justify-center"
+                            >
+                                <CalendarDaysIcon class="w-4 h-4" />
+                            </div>
                         </div>
 
                         <!-- Content -->
                         <div class="flex-1 min-w-0">
-                            <p class="text-xs font-semibold text-gray-800 truncate">
-                                {{ item.data?.title || 'Notifikasi' }}
-                            </p>
-                            <p class="text-xs text-gray-600 mt-0.5 line-clamp-2">
+                            <div class="flex items-center justify-between gap-2">
+                                <p class="text-xs font-heading font-bold text-slate-900 truncate">
+                                    {{ item.data?.title || 'Notifikasi' }}
+                                </p>
+                                <span
+                                    v-if="!item.read_at"
+                                    class="w-2 h-2 rounded-full bg-brand-600 shrink-0"
+                                    title="Belum dibaca"
+                                ></span>
+                            </div>
+
+                            <p class="text-xs text-slate-600 mt-0.5 line-clamp-2 leading-relaxed">
                                 {{ item.data?.message || '-' }}
                             </p>
-                            <span class="text-[10px] text-gray-400 mt-1 block">
-                                {{ timeAgo(item.created_at) }}
-                            </span>
+
+                            <div class="flex items-center justify-between text-[10px] text-slate-400 mt-1.5">
+                                <span>{{ timeAgo(item.created_at) }}</span>
+                                <span class="text-brand-600 font-semibold group-hover:underline opacity-0 group-hover:opacity-100 transition">
+                                    Lihat Detail &rarr;
+                                </span>
+                            </div>
                         </div>
                     </div>
                 </template>
@@ -192,4 +217,3 @@ onUnmounted(() => {
         </div>
     </div>
 </template>
-
